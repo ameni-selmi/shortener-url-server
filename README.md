@@ -34,7 +34,7 @@ A URL shortening service built with NestJS and MongoDB.
 git clone https://github.com/yourusername/url-shortener.git
 
 # Install dependencies
-npm install
+yarn install
 
 
 ## Configuration
@@ -43,20 +43,19 @@ Create a `.env` file in the root directory with the following variables:
 
 
 MONGODB_URI=mongodb://localhost:27017/url_shortener
-JWT_SECRET=your_jwt_secret
 
 
 ## Running the app
 
 
 # Development
-npm run start
+yarn start
 
 # Watch mode
-npm run start:dev
+yarn start:dev
 
 # Production mode
-npm run start:prod
+yarn start:prod
 
 
 ## Docker Setup
@@ -80,13 +79,13 @@ Once the application is running, visit `http://localhost:3000/api` to access the
 
 
 # Unit tests
-npm run test
+yarn test
 
 # E2E tests
-npm run test:e2e
+yarn test:e2e
 
 # Test coverage
-npm run test:cov
+yarn test:cov
 
 
 ## Project Structure
