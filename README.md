@@ -31,11 +31,14 @@ A URL shortening service built with NestJS and MongoDB.
 
 
 # Clone the repository
-git clone https://github.com/yourusername/url-shortener.git
-
+```
+git clone https://github.com/ameni-selmi/shortener-url-server.git
+cd url-shortener-server
+```
 # Install dependencies
+```
 yarn install
-
+```
 
 ## Configuration
 
@@ -49,14 +52,17 @@ MONGODB_URI=mongodb://localhost:27017/url_shortener
 
 
 # Development
+```
 yarn start
-
+```
 # Watch mode
+```
 yarn start:dev
-
+```
 # Production mode
+```
 yarn start:prod
-
+```
 
 ## Docker Setup
 
@@ -67,29 +73,21 @@ docker-compose up -d
 
 ## API Documentation
 
-Once the application is running, visit `http://localhost:3000/api` to access the Swagger documentation.
+Once the application is running, visit `http://localhost:5000/api-docs` to access the Swagger documentation.
 
 ### Main Endpoints
 
-- `POST /url` - Create a shortened URL
-- `GET /:code` - Redirect to original URL
-- `GET /url/:code/stats` - Get URL statistics
+- `POST /shorten` - Create a shortened URL
+- `GET /:shortenedId` - Redirect to original URL
 
 ## Testing
 
-
 # Unit tests
+```
 yarn test
-
-# E2E tests
-yarn test:e2e
-
-# Test coverage
-yarn test:cov
-
+```
 
 ## Project Structure
-
 
 src/
 ├── filters/        # Filters files
@@ -105,7 +103,3 @@ src/
 3. Commit your changes (`git commit -m 'Add some amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
