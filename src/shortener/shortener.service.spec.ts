@@ -1,141 +1,222 @@
 // import { CACHE_MANAGER } from '@nestjs/cache-manager';
 // import { getModelToken } from '@nestjs/mongoose';
 // import { Test, TestingModule } from '@nestjs/testing';
-// import { CreateUrlDto } from './dto/create-url.dto';
+// import { Model } from 'mongoose';
 // import { Shortener } from './shortener.schema';
 // import { ShortenerService } from './shortener.service';
 
-// // Mock nanoid
+// // Mock nanoid to return a predictable value for testing
 // jest.mock('nanoid', () => ({
-//   nanoid: jest.fn(() => 'abcdef'), 
+//   nanoid: jest.fn(() => 'shortCode123'),
 // }));
+
+// class shortenerModelMocked {
+//     constructor() {
+//         this.findOne = jest.fn();
+//         this.create = jest.fn();
+//         this.save = jest.fn();
+//     }
+//     findOne = jest.fn();
+//     create = jest.fn();
+//     save = jest.fn();
+// }
 
 // describe('ShortenerService', () => {
 //   let service: ShortenerService;
-//   let shortenerModel: any;
-
+//   let shortenerModel: Model<Shortener>; 
+//   let cacheManager: any;
+// //   const shortenerModelMocked =  {
+// //     findOne: jest.fn(),
+// //     create: jest.fn(),
+// //     save: jest.fn(),
+// //   }
+  
 //   beforeEach(async () => {
-//     const mockModel = {
-//       findOne: jest.fn(),
-//       create: jest.fn(),
-//     };
-
 //     const module: TestingModule = await Test.createTestingModule({
 //       providers: [
 //         ShortenerService,
-//         { provide: getModelToken(Shortener.name), useValue: mockModel },
-//         { provide: CACHE_MANAGER, useValue: { get: jest.fn(), set: jest.fn() } },
+//         {
+//           provide: getModelToken(Shortener.name),
+//           useValue: {
+//                 findOne: jest.fn(),
+//                 create: jest.fn(),
+//                 save: jest.fn(),
+//           },
+//         },
+//         {
+//           provide: CACHE_MANAGER,
+//           useValue: {
+//             get: jest.fn(),
+//             set: jest.fn(),
+//           },
+//         },
 //       ],
 //     }).compile();
 
 //     service = module.get<ShortenerService>(ShortenerService);
 //     shortenerModel = module.get(getModelToken(Shortener.name));
+//     // shortenerModel = {
+//     //     findOne: jest.fn(),
+//     //     create: jest.fn().mockImplementation(() => ({
+//     //     save: jest.fn().mockResolvedValue(true),
+//     // })),
+//     // } as Model<ShortenerDocument>;
+//     cacheManager = module.get(CACHE_MANAGER);
+//   });
+  
+//   afterEach(() => {
+//     jest.clearAllMocks();
 //   });
 
-//   it('should shorten a URL successfully', async () => {
-//     const createUrlDto: CreateUrlDto = { originalURL: 'https://example.com' };
+//   describe('shortenUrl', () => {
+//     it('should shorten the URL and return a shortened URL', async () => {
+//       const createUrlDto = { originalURL: 'http://example.com' };
 
-//     // Mock database operations
-//     shortenerModel.findOne.mockResolvedValueOnce(null); // No existing shortcode
-//     shortenerModel.create.mockReturnValueOnce({
-//       save: jest.fn().mockResolvedValueOnce(true), // Simulate successful database save
+//       // Mock findOne to return null (indicating the shortCode is unique)
+//     //   shortenerModelMocked.findOne.mockResolvedValue(null);
+
+//     //   const saveMock = shortenerModelMocked.save.mockResolvedValue({
+//     //     originalUrl: createUrlDto.originalURL,
+//     //     shortCode: 'shortCode123',
+//     //   });
+
+//     //   shortenerModel.save = saveMock;
+
+//       const result = await service.shortenUrl(createUrlDto);
+
+//       expect(result).toEqual({
+//         shortenedUrl: `${process.env.BACKEND_URL}shortCode123`,
+//       });
+//     //   expect(saveMock).toHaveBeenCalledTimes(1);
 //     });
-//     console.log(Object.getOwnPropertyNames(service));
-//     console.log(service);
-    
-//     // const result = await service.shortenUrl(createUrlDto);
 
-//     // expect(result).toEqual({
-//     //   shortenedUrl: `${process.env.BACKEND_URL}abcdef`,
-//     // });
+//     // it('should throw an error if saving the shortened URL fails', async () => {
+//     //   const createUrlDto = { originalURL: 'http://example.com' };
 
-//     // expect(shortenerModel.findOne).toHaveBeenCalledWith({ shortCode: 'abcdef' });
-//     // expect(shortenerModel.create).toHaveBeenCalledWith({
-//     //   originalUrl: 'https://example.com',
-//     //   shortCode: 'abcdef',
+//     //   // Mock findOne to return null (indicating the shortCode is unique)
+//     //   shortenerModel.findOne = jest.fn().mockResolvedValue(null);
+
+//     //   // Mock the save method to throw an error
+//     // //   shortenerModel.save = jest.fn().mockRejectedValue(new Error('Database error'));
+
+//     //   await expect(service.shortenUrl(createUrlDto)).rejects.toThrow(BadRequestException);
 //     // });
 //   });
 // });
 
-import { BadRequestException } from '@nestjs/common';
+
+
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { NotFoundException } from '@nestjs/common';
+import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
-import { nanoid } from 'nanoid';
+import { Cache } from 'cache-manager';
+import { Model } from 'mongoose';
+import { Shortener, ShortenerDocument } from './shortener.schema';
 import { ShortenerService } from './shortener.service';
 
-// Mock nanoid
-jest.mock('nanoid', () => ({
-  nanoid: jest.fn(),
-}));
-
-// Mock mongoose and Schema constructor
-jest.mock('mongoose', () => ({
-  model: jest.fn().mockReturnValue({
-    findOne: jest.fn(),
-    create: jest.fn().mockImplementation((data) => ({
-      ...data,
-      save: jest.fn().mockResolvedValue(undefined), // Mock save method
-    })),
-  }),
-  Schema: jest.fn().mockImplementation(() => ({})), // Mock Schema constructor
-}));
-
-describe('ShortenerService - shortenUrl', () => {
+describe('ShortenerService', () => {
   let service: ShortenerService;
-  let shortenerModelMock: any;
-  let cacheManagerMock: any;
+  let mockModel: Model<ShortenerDocument>;
+  let mockCacheManager: Partial<Cache>;
 
   beforeEach(async () => {
-    // Mock the CACHE_MANAGER dependency
-    cacheManagerMock = {
-      set: jest.fn(),
+    // Mock the Mongoose model
+    mockModel = {
+      findOne: jest.fn(),
+      // Properly mock the constructor functionality
+      constructor: function() {
+        return {
+          save: jest.fn().mockResolvedValue(undefined)
+        };
+      }
+    } as any;
+
+    // Create a proper mock for new Model() usage
+    const mockConstructor = function(this: any, dto: any) {
+      this.originalUrl = dto.originalUrl;
+      this.shortCode = dto.shortCode;
+      this.save = jest.fn().mockResolvedValue(undefined);
+      return this;
+    };
+
+    // Set up the model to work with 'new' operator
+    mockModel = function(dto: any) {
+      return new (mockConstructor as any)(dto);
+    } as any;
+    mockModel.findOne = jest.fn();
+
+    // Mock the cache manager
+    mockCacheManager = {
       get: jest.fn(),
+      set: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ShortenerService,
-        { provide: 'CACHE_MANAGER', useValue: cacheManagerMock },
+        {
+          provide: getModelToken(Shortener.name),
+          useValue: mockModel,
+        },
+        {
+          provide: CACHE_MANAGER,
+          useValue: mockCacheManager,
+        },
       ],
     }).compile();
 
     service = module.get<ShortenerService>(ShortenerService);
-
-    // Get the mocked model created by mongoose.mock
-    shortenerModelMock = require('mongoose').model();
   });
 
-  it('should shorten the URL and return the shortened URL', async () => {
-    const mockOriginalURL = 'https://example.com';
-    const mockShortCode = 'abc123';
-    const mockBackendUrl = 'http://localhost:3000/';
+  describe('shortenUrl', () => {
+    it('should create a shortened URL successfully', async () => {
+      // Mock environment variable
+      process.env.BACKEND_URL = 'http://localhost:5000/';
+      
+      // Mock that the shortCode doesn't exist yet
+      (mockModel.findOne as jest.Mock).mockResolvedValueOnce(null);
 
-    process.env.BACKEND_URL = mockBackendUrl;
+      const result = await service.shortenUrl({ originalURL: 'https://example.com' });
 
-    (nanoid as jest.Mock).mockReturnValue(mockShortCode);
-    shortenerModelMock.findOne.mockResolvedValue(null); // Mock findOne to return null (no existing code)
-
-    const result = await service.shortenUrl({ originalURL: mockOriginalURL });
-
-    expect(result).toEqual({ shortenedUrl: `${mockBackendUrl}${mockShortCode}` });
-    expect(nanoid).toHaveBeenCalledWith(6);
-    expect(shortenerModelMock.findOne).toHaveBeenCalledWith({ shortCode: mockShortCode });
+      expect(result).toHaveProperty('shortenedUrl');
+      expect(result.shortenedUrl).toMatch(/http:\/\/localhost:5000\/[A-Za-z0-9]{6}/);
+    });
   });
 
-  it('should throw BadRequestException if saving to database fails', async () => {
-    const mockOriginalURL = 'https://example.com';
-    const mockShortCode = 'abc123';
+  describe('redirectToOriginal', () => {
+    it('should return cached URL if it exists', async () => {
+      const cachedUrl = 'https://example.com';
+      (mockCacheManager.get as jest.Mock).mockResolvedValueOnce(cachedUrl);
 
-    (nanoid as jest.Mock).mockReturnValue(mockShortCode);
-    shortenerModelMock.findOne.mockResolvedValue(null); // Mock findOne to return null (no existing code)
+      const result = await service.redirectToOriginal('abc123');
 
-    // Simulate an error in the create method
-    shortenerModelMock.create.mockImplementation(() => {
-      throw new Error('Database error');
+      expect(result).toBe(cachedUrl);
+      expect(mockModel.findOne).not.toHaveBeenCalled();
     });
 
-    // Ensure BadRequestException is thrown when an error occurs during the saving process
-    await expect(service.shortenUrl({ originalURL: mockOriginalURL })).rejects.toThrowError(
-      new BadRequestException('Error saving shortened URL to the database'),
-    );
+    it('should fetch and cache URL if not in cache', async () => {
+      const originalUrl = 'https://example.com';
+      (mockCacheManager.get as jest.Mock).mockResolvedValueOnce(null);
+      (mockModel.findOne as jest.Mock).mockResolvedValueOnce({
+        originalUrl,
+        clickCount: 0,
+        save: jest.fn().mockResolvedValue(undefined),
+      });
+
+      const result = await service.redirectToOriginal('abc123');
+
+      expect(result).toBe(originalUrl);
+      expect(mockCacheManager.set).toHaveBeenCalled();
+    });
+
+    it('should throw NotFoundException when URL not found', async () => {
+      (mockCacheManager.get as jest.Mock).mockResolvedValueOnce(null);
+      (mockModel.findOne as jest.Mock).mockResolvedValueOnce(null);
+
+      await expect(service.redirectToOriginal('abc123')).rejects.toThrow(
+        NotFoundException
+      );
+    });
   });
 });

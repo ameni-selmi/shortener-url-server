@@ -17,36 +17,6 @@ export class ShortenerService {
     @Inject(CACHE_MANAGER) private cacheManager: Cache, 
   ) {}
 
-  async shortenUrlv2 (createUrlDto: CreateUrlDto) {
-    console.log('shortenUrl')
-    const { originalURL } = createUrlDto;
-    // Generate a unique shortcode (6 characters long) using nanoid
-    let shortCode;
-    let existingCode;
-    do {
-      shortCode = nanoid(6);  // Generate a 6-character unique ID
-      existingCode = await this.shortenerModel.findOne({ shortCode });  // Check if code already exists
-    } while (existingCode);  // Retry generating the code if it already exists
-
-    try {
-      // Create the new shortened URL record
-      const newUrl = new this.shortenerModel({
-        originalUrl: originalURL,
-        shortCode,
-      });
-
-      await newUrl.save();
-
-      return {
-        shortenedUrl: `${process.env.BACKEND_URL}${shortCode}`,
-      };
-    } catch (error) {
-      console.log("error",error);
-      throw new BadRequestException('Error saving shortened URL to the database');
-    }
-  }
-
-
   /**
    * Shorten the provided URL and return a shortened version.
    * @param createUrlDto - DTO containing the original URL.
