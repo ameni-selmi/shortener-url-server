@@ -1,105 +1,101 @@
-# URL Shortener API
+# URL Shortener Backend Server  
 
-A URL shortening service built with NestJS and MongoDB.
+This is the backend server for the URL Shortener project [sshorty](https://sshorty.netlify.app). It is built with **NestJS** and provides endpoints to shorten URLs, redirect users to the original URLs, and efficiently handle requests with caching and security features.
 
-## Features
+---
 
-- Shorten long URLs to unique short codes
-- Redirect short URLs to original long URLs
-- Custom short code support
-- URL validation
-- Visit tracking and analytics
-- Rate limiting
-- API documentation with Swagger
+## **Features**  
 
-## Tech Stack
+- **URL Shortening**: Shortens long URLs into unique, concise identifiers.  
+- **Redirection Logic**: Redirects users to the original URL when they access the shortened link.  
+- **Caching**: Implements caching using `CacheManager` to enhance performance by storing frequently accessed data.  
+- **Security**:  
+  - CORS enabled for safe cross-origin resource sharing.  
+  - XSS filtering to prevent cross-site scripting attacks.
+  - Rate Limiting to restricted requests per IP using.
 
-- NestJS - Node.js framework
-- MongoDB - Database
-- Mongoose - ODM
-- Jest - Testing
-- Swagger - API documentation
-- Docker - Containerization
+---
 
-## Prerequisites
+## **Endpoints**  
 
-- Node.js (v14+)
-- MongoDB
-- Docker (optional)
+### **1. POST /api/shorten**  
+Shortens a given URL.  
 
-## Installation
-
-
-# Clone the repository
-```
-git clone https://github.com/ameni-selmi/shortener-url-server.git
-cd url-shortener-server
-```
-# Install dependencies
-```
-yarn install
+#### Request  
+```json
+{
+  "originalURL": "https://example.com/some/long/url"
+}
 ```
 
-## Configuration
-
-Create a `.env` file in the root directory with the following variables:
-
-
-MONGODB_URI=mongodb://localhost:27017/url_shortener
-
-
-## Running the app
-
-
-# Development
-```
-yarn start
-```
-# Watch mode
-```
-yarn start:dev
-```
-# Production mode
-```
-yarn start:prod
+#### Response  
+```json
+{
+  "shortenedUrl": "http://localhost:3000/<shortCode>"
+}
 ```
 
-## Docker Setup
+---
+
+### **2. GET /:shortenedId**  
+Redirects to the original URL based on the shortened ID.  
+
+#### Behavior  
+- First, checks the cache for the original URL.  
+- If not found in the cache, fetches from the database and caches the result.  
+
+---
+
+## **Caching Implementation**  
+
+- **Technology**: Uses NestJS `CacheManager` for in-memory caching.  
+- **Flow**:  
+  1. When a `shortenedId` is provided, the server checks if the original URL exists in the cache.  
+  2. If found, it redirects the user immediately.  
+  3. If not, it fetches from the database, caches the result, and redirects the user.  
+- **TTL (Time-to-Live)**: Cached URLs are stored for **1 hour**.
+
+---
+
+## **Security**  
+
+1. **CORS**: Configured to allow requests only from trusted origins.  
+2. **XSS Protection**: Enabled to sanitize input and prevent malicious scripts.
+3. **Rate Limiting**: Implemented using `ThrottlerModule` to restrict users to a maximum number of requests per minute per TTL.
 
 
-# Build and run with Docker Compose
-docker-compose up -d
+---
 
+## **How to Run**  
 
-## API Documentation
+1. Clone the repository:  
+   ```bash
+   git clone https://github.com/ameni-selmi/shortener-url-server.git
+   cd url-shortener-server
+   ```
 
-Once the application is running, visit `http://localhost:5000/api-docs` to access the Swagger documentation.
+2. Install dependencies:  
+   ```bash
+   yarn install
+   ```
 
-### Main Endpoints
+3. Set up environment variables in a `.env` file:  
+   ```plaintext
+    MONGO_URI= The MongoDB connection string.
+    BACKEND_URL= The base URL for the backend server.
+    FRONTEND_URL= The base URL for the frontend application.
+    PORT= The port on which the backend server runs.
+   ```
 
-- `POST /shorten` - Create a shortened URL
-- `GET /:shortenedId` - Redirect to original URL
+4. Start the server:  
+   ```bash
+   yarn start:dev
+   ```
 
-## Testing
+---
 
-# Unit tests
-```
+## **Testing**  
+
+```bash
 yarn test
 ```
-
-## Project Structure
-
-src/
-├── filters/        # Filters files
-├── shortener/      # Shortener service
-├── main.ts         # Application entry point
-└── app.module.ts   # Root module
-
-
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
